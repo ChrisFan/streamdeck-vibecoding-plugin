@@ -14,9 +14,9 @@ import {
 import {
   renderControlButton,
   svgToBase64,
-  type ControlType,
 } from "../lib/button-renderer";
-import type { PendingPermission, SessionSlot } from "../lib/types";
+import { getCurrentSkin, onSkinChange } from "../lib/skin-manager";
+import type { PendingPermission, SessionSlot, ControlType } from "../lib/types";
 
 const logger = streamDeck.logger.createScope("ClaudeControl");
 
@@ -79,7 +79,8 @@ function updateControlButtons(
   type: ControlType,
   active: boolean,
 ): void {
-  const svg = renderControlButton(type, active);
+  const skin = getCurrentSkin();
+  const svg = renderControlButton(type, active, skin);
   const img = svgToBase64(svg);
   for (const ctx of actions) {
     ctx.setImage(img);
@@ -91,6 +92,7 @@ function updateControlButtons(
 @action({ UUID: "com.chris.claude-sessions.approve" })
 export class ApproveAction extends SingletonAction {
   #started = false;
+  #unsubSkin: (() => void) | null = null;
 
   override onWillAppear(_ev: WillAppearEvent): void {
     if (!this.#started) {
@@ -99,6 +101,7 @@ export class ApproveAction extends SingletonAction {
       ensurePendingWatcher();
       pendingListeners.add(this.#onChange);
       sessionListeners.add(this.#onChange);
+      this.#unsubSkin = onSkinChange(() => this.#render());
     }
     this.#render();
   }
@@ -108,6 +111,8 @@ export class ApproveAction extends SingletonAction {
       pendingListeners.delete(this.#onChange);
       sessionListeners.delete(this.#onChange);
       this.#started = false;
+      this.#unsubSkin?.();
+      this.#unsubSkin = null;
     }
   }
 
@@ -140,6 +145,7 @@ export class ApproveAction extends SingletonAction {
 @action({ UUID: "com.chris.claude-sessions.reject" })
 export class RejectAction extends SingletonAction {
   #started = false;
+  #unsubSkin: (() => void) | null = null;
 
   override onWillAppear(_ev: WillAppearEvent): void {
     if (!this.#started) {
@@ -148,6 +154,7 @@ export class RejectAction extends SingletonAction {
       ensurePendingWatcher();
       pendingListeners.add(this.#onChange);
       sessionListeners.add(this.#onChange);
+      this.#unsubSkin = onSkinChange(() => this.#render());
     }
     this.#render();
   }
@@ -157,6 +164,8 @@ export class RejectAction extends SingletonAction {
       pendingListeners.delete(this.#onChange);
       sessionListeners.delete(this.#onChange);
       this.#started = false;
+      this.#unsubSkin?.();
+      this.#unsubSkin = null;
     }
   }
 
@@ -189,12 +198,14 @@ export class RejectAction extends SingletonAction {
 @action({ UUID: "com.chris.claude-sessions.interrupt" })
 export class InterruptAction extends SingletonAction {
   #started = false;
+  #unsubSkin: (() => void) | null = null;
 
   override onWillAppear(_ev: WillAppearEvent): void {
     if (!this.#started) {
       this.#started = true;
       ensureSessionWatcher();
       sessionListeners.add(this.#onSessionChange);
+      this.#unsubSkin = onSkinChange(() => this.#render());
     }
     this.#render();
   }
@@ -203,6 +214,8 @@ export class InterruptAction extends SingletonAction {
     if (Array.from(this.actions).length === 0) {
       sessionListeners.delete(this.#onSessionChange);
       this.#started = false;
+      this.#unsubSkin?.();
+      this.#unsubSkin = null;
     }
   }
 
@@ -235,6 +248,7 @@ export class InterruptAction extends SingletonAction {
 @action({ UUID: "com.chris.claude-sessions.approve-all" })
 export class ApproveAllAction extends SingletonAction {
   #started = false;
+  #unsubSkin: (() => void) | null = null;
 
   override onWillAppear(_ev: WillAppearEvent): void {
     if (!this.#started) {
@@ -243,6 +257,7 @@ export class ApproveAllAction extends SingletonAction {
       ensurePendingWatcher();
       pendingListeners.add(this.#onChange);
       sessionListeners.add(this.#onChange);
+      this.#unsubSkin = onSkinChange(() => this.#render());
     }
     this.#render();
   }
@@ -252,6 +267,8 @@ export class ApproveAllAction extends SingletonAction {
       pendingListeners.delete(this.#onChange);
       sessionListeners.delete(this.#onChange);
       this.#started = false;
+      this.#unsubSkin?.();
+      this.#unsubSkin = null;
     }
   }
 

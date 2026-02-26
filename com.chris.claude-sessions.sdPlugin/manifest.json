@@ -68,6 +68,30 @@
           "Image": "imgs/control/approve-all"
         }
       ]
+    },
+    {
+      "Name": "Caffeinate",
+      "UUID": "com.chris.claude-sessions.caffeinate",
+      "Tooltip": "Toggle caffeinate to prevent system sleep",
+      "Icon": "imgs/control/caffeinate",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/control/caffeinate"
+        }
+      ]
+    },
+    {
+      "Name": "Skin Toggle",
+      "UUID": "com.chris.claude-sessions.skin-toggle",
+      "Tooltip": "Cycle through visual themes",
+      "Icon": "imgs/control/skin-toggle",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/control/skin-toggle"
+        }
+      ]
     }
   ],
   "CodePath": "bin/plugin.js",

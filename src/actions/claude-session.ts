@@ -12,6 +12,7 @@ import {
   renderEmptyButton,
   svgToBase64,
 } from "../lib/button-renderer";
+import { getCurrentSkin, onSkinChange } from "../lib/skin-manager";
 import type { SessionSlot } from "../lib/types";
 
 const logger = streamDeck.logger.createScope("ClaudeSession");
@@ -21,6 +22,7 @@ export class ClaudeSessionAction extends SingletonAction {
   #refreshTimer: ReturnType<typeof setInterval> | null = null;
   #watcherStarted = false;
   #slotMap = new Map<string, SessionSlot | null>();
+  #unsubSkin: (() => void) | null = null;
 
   override onWillAppear(_ev: WillAppearEvent): void {
     if (!this.#watcherStarted) {
@@ -35,6 +37,10 @@ export class ClaudeSessionAction extends SingletonAction {
       this.#refreshTimer = setInterval(() => {
         this.#updateAllButtons(getSessions());
       }, 5000);
+
+      this.#unsubSkin = onSkinChange(() => {
+        this.#updateAllButtons(getSessions());
+      });
     }
   }
 
@@ -52,6 +58,10 @@ export class ClaudeSessionAction extends SingletonAction {
     if (this.#refreshTimer) {
       clearInterval(this.#refreshTimer);
       this.#refreshTimer = null;
+    }
+    if (this.#unsubSkin) {
+      this.#unsubSkin();
+      this.#unsubSkin = null;
     }
   }
 
@@ -73,12 +83,13 @@ export class ClaudeSessionAction extends SingletonAction {
 
   #updateAllButtons(slots: SessionSlot[]): void {
     const buttons = Array.from(this.actions);
+    const skin = getCurrentSkin();
     this.#slotMap.clear();
 
     buttons.forEach((ctx, index) => {
       const slot = index < slots.length ? slots[index] : null;
       this.#slotMap.set(ctx.id, slot);
-      const svg = slot ? renderSessionButton(slot) : renderEmptyButton();
+      const svg = slot ? renderSessionButton(slot, skin) : renderEmptyButton(skin);
       const base64 = svgToBase64(svg);
       ctx.setImage(base64);
     });

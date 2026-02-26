@@ -56,7 +56,7 @@ export async function focusGhosttyWindow(
   setTTYTitle(ttyPath, marker);
 
   // Wait for Ghostty to process the OSC title change
-  await new Promise((r) => setTimeout(r, 150));
+  await new Promise((r) => setTimeout(r, 200));
 
   const escaped = marker.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
@@ -66,6 +66,7 @@ tell application "System Events"
     return "not_running"
   end if
   tell process "Ghostty"
+    -- Pass 1: multi-tab windows (tab bar visible → AXTabGroup exists)
     repeat with w in windows
       set tg to missing value
       try
@@ -76,7 +77,6 @@ tell application "System Events"
         repeat with t in tabButtons
           try
             if title of t contains "${escaped}" then
-              -- Click the tab to switch to it
               perform action "AXPress" of t
               tell application "Ghostty" to activate
               return "found"
@@ -84,6 +84,17 @@ tell application "System Events"
           end try
         end repeat
       end if
+    end repeat
+
+    -- Pass 2: single-tab windows (no tab bar → match window title)
+    repeat with w in windows
+      try
+        if title of w contains "${escaped}" then
+          perform action "AXRaise" of w
+          tell application "Ghostty" to activate
+          return "found"
+        end if
+      end try
     end repeat
   end tell
 end tell

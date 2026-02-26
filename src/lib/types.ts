@@ -27,3 +27,42 @@ export interface PendingPermission {
   tool_input: Record<string, unknown>;
   timestamp: number;
 }
+
+export type ControlType = "approve" | "reject" | "interrupt" | "approve-all";
+
+export interface ColorSet {
+  bg: string;
+  text: string;
+  border: string;
+  subtext: string;
+  highlight: string;
+}
+
+export interface Skin {
+  id: string;
+  name: string;
+
+  // Session buttons
+  statusColors: Record<SessionStatus, ColorSet>;
+  statusLabels: Record<SessionStatus, string>;
+  statusIcons: Record<SessionStatus, string>;
+
+  // Empty slot
+  empty: { colors: ColorSet; icon: string; label: string };
+
+  // Control buttons (approve/reject/interrupt/approve-all)
+  controlColors: { active: ColorSet; inactive: ColorSet };
+  controls: Record<ControlType, { icon: string; label: string }>;
+
+  // Caffeinate
+  caffeinate: {
+    icon: string;
+    activeLabel: string;
+    inactiveLabel: string;
+    active: ColorSet;
+    inactive: ColorSet;
+  };
+
+  // Toggle button itself
+  toggle: { colors: ColorSet; icon: string };
+}
