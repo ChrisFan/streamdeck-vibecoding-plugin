@@ -30,17 +30,23 @@ function setTTYTitle(ttyPath: string, title: string): void {
   }
 }
 
+function escapeAppleScript(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 /**
  * Focus the Ghostty tab for a specific Claude Code session.
  *
- * Strategy:
- * 1. Use the session PID to find its TTY device
- * 2. Write a unique temporary title (including PID) to that TTY via OSC 2
- * 3. AppleScript finds the AXRadioButton in AXTabGroup matching that title
- * 4. Click it to switch tabs, then activate Ghostty
- * 5. Restore original title (project: status format)
+ * Multi-strategy approach (tab titles vary by session state):
+ *   - hook.sh-set titles:  "project: status"  (idle sessions that retained our write)
+ *   - zsh-set titles:      "~/path/to/project" (idle sessions where prompt overwrote)
+ *   - Claude Code titles:  "✳ Claude Code"     (working sessions with spinner)
  *
- * Returns true if the tab was found and focused, false otherwise.
+ * Strategy:
+ *   1. Write unique marker to TTY, search tab titles for marker (exact match)
+ *   2. Search tab titles for project name (matches hook.sh + zsh formats)
+ *   3. Same for single-tab windows (window title instead of tab buttons)
+ *   4. Fallback: activate Ghostty without targeting a specific tab
  */
 export async function focusGhosttyWindow(
   project: string,
@@ -51,14 +57,15 @@ export async function focusGhosttyWindow(
   const ttyPath = getTTYPath(pid);
   if (!ttyPath) return false;
 
-  // Set a unique temporary title so we can locate the exact tab
+  // Write a unique marker to the TTY — works when nothing overwrites it quickly
   const marker = `__sd_focus_${pid}__`;
   setTTYTitle(ttyPath, marker);
 
-  // Wait for Ghostty to process the OSC title change
-  await new Promise((r) => setTimeout(r, 200));
+  // Brief delay for Ghostty to process the OSC title change
+  await new Promise((r) => setTimeout(r, 80));
 
-  const escaped = marker.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const markerEsc = escapeAppleScript(marker);
+  const projectEsc = escapeAppleScript(project);
 
   const script = `
 tell application "System Events"
@@ -66,17 +73,30 @@ tell application "System Events"
     return "not_running"
   end if
   tell process "Ghostty"
-    -- Pass 1: multi-tab windows (tab bar visible → AXTabGroup exists)
     repeat with w in windows
       set tg to missing value
       try
         set tg to first UI element of w whose role is "AXTabGroup"
       end try
+
       if tg is not missing value then
         set tabButtons to radio buttons of tg
+
+        -- Pass 1: exact marker match (unique, works for idle sessions)
         repeat with t in tabButtons
           try
-            if title of t contains "${escaped}" then
+            if title of t contains "${markerEsc}" then
+              perform action "AXPress" of t
+              tell application "Ghostty" to activate
+              return "found"
+            end if
+          end try
+        end repeat
+
+        -- Pass 2: project name match (hook.sh "project: status" or zsh "~/path/project")
+        repeat with t in tabButtons
+          try
+            if title of t contains "${projectEsc}" then
               perform action "AXPress" of t
               tell application "Ghostty" to activate
               return "found"
@@ -84,12 +104,17 @@ tell application "System Events"
           end try
         end repeat
       end if
-    end repeat
 
-    -- Pass 2: single-tab windows (no tab bar → match window title)
-    repeat with w in windows
+      -- Pass 3: single-tab window (no tab bar) — check window title
       try
-        if title of w contains "${escaped}" then
+        if title of w contains "${markerEsc}" then
+          perform action "AXRaise" of w
+          tell application "Ghostty" to activate
+          return "found"
+        end if
+      end try
+      try
+        if title of w contains "${projectEsc}" then
           perform action "AXRaise" of w
           tell application "Ghostty" to activate
           return "found"
@@ -99,14 +124,14 @@ tell application "System Events"
   end tell
 end tell
 
--- Tab not found by marker — just activate Ghostty
+-- Nothing matched — just bring Ghostty to front
 tell application "Ghostty" to activate
 return "fallback"
 `;
 
   const result = await runOsascript(script);
 
-  // Restore meaningful title (matches hook.sh format)
+  // Restore a meaningful title so future focus attempts can match by project name
   setTTYTitle(ttyPath, `${project}: focused`);
 
   return result;
@@ -130,7 +155,9 @@ function runOsascript(script: string): Promise<boolean> {
         reject(new Error(`osascript exited ${code}: ${stderr.trim()}`));
         return;
       }
-      resolve(stdout.trim() === "found");
+      // "found" = exact tab, "fallback" = just activated Ghostty
+      // Both are acceptable — only "not_running" is a true failure
+      resolve(stdout.trim() !== "not_running");
     });
 
     proc.stdin.write(script);

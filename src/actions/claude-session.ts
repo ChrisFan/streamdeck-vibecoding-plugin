@@ -2,11 +2,12 @@ import streamDeck, {
   action,
   SingletonAction,
   type KeyDownEvent,
+  type KeyUpEvent,
   type WillAppearEvent,
   type WillDisappearEvent,
 } from "@elgato/streamdeck";
 import { focusGhosttyWindow } from "../lib/terminal-focus";
-import { startWatching, stopWatching, getSessions } from "../lib/session-watcher";
+import { startWatching, stopWatching, getSessions, removeSession } from "../lib/session-watcher";
 import {
   renderSessionButton,
   renderEmptyButton,
@@ -19,9 +20,12 @@ const logger = streamDeck.logger.createScope("ClaudeSession");
 
 @action({ UUID: "com.chris.claude-sessions.session" })
 export class ClaudeSessionAction extends SingletonAction {
+  static readonly #LONG_PRESS_MS = 1000;
+
   #refreshTimer: ReturnType<typeof setInterval> | null = null;
   #watcherStarted = false;
   #slotMap = new Map<string, SessionSlot | null>();
+  #keyDownAt = new Map<string, number>();
   #unsubSkin: (() => void) | null = null;
 
   override onWillAppear(_ev: WillAppearEvent): void {
@@ -65,10 +69,27 @@ export class ClaudeSessionAction extends SingletonAction {
     }
   }
 
-  override async onKeyDown(ev: KeyDownEvent): Promise<void> {
-    const slot = this.#slotMap.get(ev.action.id);
-    if (!slot?.session.pid) return;
+  override onKeyDown(ev: KeyDownEvent): void {
+    this.#keyDownAt.set(ev.action.id, Date.now());
+  }
 
+  override async onKeyUp(ev: KeyUpEvent): Promise<void> {
+    const downAt = this.#keyDownAt.get(ev.action.id);
+    this.#keyDownAt.delete(ev.action.id);
+    const slot = this.#slotMap.get(ev.action.id);
+
+    const held = downAt ? Date.now() - downAt : 0;
+
+    if (held >= ClaudeSessionAction.#LONG_PRESS_MS && slot) {
+      // Long press → delete session
+      logger.info("Long-press delete: %s (%s)", slot.sessionId, slot.session.project);
+      removeSession(slot.sessionId);
+      ev.action.showOk();
+      return;
+    }
+
+    // Short press → focus terminal
+    if (!slot?.session.pid) return;
     try {
       const focused = await focusGhosttyWindow(slot.session.project, slot.session.pid);
       if (focused) {

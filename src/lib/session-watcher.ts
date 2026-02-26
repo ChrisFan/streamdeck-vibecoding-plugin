@@ -1,4 +1,5 @@
 import { readFileSync, statSync, watch, type FSWatcher } from "fs";
+import { execFileSync } from "child_process";
 import { homedir } from "os";
 import path from "path";
 import type { SessionsState, SessionSlot } from "./types";
@@ -6,7 +7,6 @@ import type { SessionsState, SessionSlot } from "./types";
 const STATE_DIR = path.join(homedir(), ".claude", "hooks", "streamdeck");
 const STATE_FILE = path.join(STATE_DIR, "sessions.json");
 const POLL_INTERVAL = 2000;
-const ZOMBIE_TIMEOUT = 600; // 10 minutes in seconds
 
 type ChangeCallback = (slots: SessionSlot[]) => void;
 
@@ -33,32 +33,48 @@ function getMtime(): number {
   }
 }
 
-function isPidAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e: unknown) {
-    // Only ESRCH (no such process) means definitely dead.
-    // Any other error (EPERM, sandbox restrictions, etc.) → assume alive.
-    return (e as NodeJS.ErrnoException).code !== "ESRCH";
-  }
-}
-
 export function getSessions(): SessionSlot[] {
   const state = readSessions();
-  const now = Date.now() / 1000;
 
-  // Filter zombies and dead PIDs client-side
-  // If PID is alive, always show (regardless of last_event age)
-  // If PID is dead/missing, use zombie timeout as cleanup
+  // Show ALL sessions from sessions.json — no timeout filtering.
+  // Sessions are removed by: SessionEnd hook, or manual long-press deletion.
   const entries = Object.entries(state.sessions)
-    .filter(([, s]) => {
-      if (s.pid && isPidAlive(s.pid)) return true;
-      return now - s.last_event < ZOMBIE_TIMEOUT;
-    })
     .sort(([, a], [, b]) => a.started_at - b.started_at);
 
   return entries.map(([id, session]) => ({ sessionId: id, session }));
+}
+
+/**
+ * Remove a session from sessions.json atomically (with file locking).
+ * Uses the same fcntl.flock mechanism as hook.sh to prevent races.
+ */
+export function removeSession(sessionId: string): void {
+  try {
+    execFileSync("python3", ["-c", `
+import json, os, fcntl
+STATE_DIR = os.path.expanduser('~/.claude/hooks/streamdeck')
+STATE_FILE = os.path.join(STATE_DIR, 'sessions.json')
+LOCK_FILE = os.path.join(STATE_DIR, '.lock')
+sid = os.environ['SD_REMOVE_SID']
+lock_fd = open(LOCK_FILE, 'w')
+fcntl.flock(lock_fd, fcntl.LOCK_EX)
+try:
+    with open(STATE_FILE, 'r') as f:
+        state = json.load(f)
+    if sid in state.get('sessions', {}):
+        del state['sessions'][sid]
+        state['updated_at'] = __import__('time').time()
+        tmp = STATE_FILE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(state, f, indent=2)
+        os.replace(tmp, STATE_FILE)
+finally:
+    fcntl.flock(lock_fd, fcntl.LOCK_UN)
+    lock_fd.close()
+`], { env: { ...process.env, SD_REMOVE_SID: sessionId } });
+  } catch {
+    // Best effort — if lock/write fails, session stays until next SessionEnd
+  }
 }
 
 function checkAndNotify(): void {
