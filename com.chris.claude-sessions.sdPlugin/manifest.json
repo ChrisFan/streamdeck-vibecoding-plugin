@@ -1,0 +1,88 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "Claude Sessions",
+  "Version": "0.1.0.0",
+  "Description": "Display active Claude Code sessions on Stream Deck",
+  "Author": "Chris",
+  "Category": "Developer Tools",
+  "CategoryIcon": "imgs/plugin",
+  "Icon": "imgs/plugin",
+  "UUID": "com.chris.claude-sessions",
+  "Actions": [
+    {
+      "Name": "Claude Session",
+      "UUID": "com.chris.claude-sessions.session",
+      "Tooltip": "Displays a Claude Code session status",
+      "Icon": "imgs/actions/session/session",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/status/empty"
+        }
+      ]
+    },
+    {
+      "Name": "Approve",
+      "UUID": "com.chris.claude-sessions.approve",
+      "Tooltip": "Approve the oldest pending permission request",
+      "Icon": "imgs/control/approve",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/control/approve"
+        }
+      ]
+    },
+    {
+      "Name": "Reject",
+      "UUID": "com.chris.claude-sessions.reject",
+      "Tooltip": "Reject the oldest pending permission request",
+      "Icon": "imgs/control/reject",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/control/reject"
+        }
+      ]
+    },
+    {
+      "Name": "Interrupt",
+      "UUID": "com.chris.claude-sessions.interrupt",
+      "Tooltip": "Send Ctrl+C to the oldest working or permission session",
+      "Icon": "imgs/control/interrupt",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/control/interrupt"
+        }
+      ]
+    },
+    {
+      "Name": "Approve All",
+      "UUID": "com.chris.claude-sessions.approve-all",
+      "Tooltip": "Approve all pending permission requests sequentially",
+      "Icon": "imgs/control/approve-all",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/control/approve-all"
+        }
+      ]
+    }
+  ],
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 2,
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.15"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "6.5"
+  }
+}

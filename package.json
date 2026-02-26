@@ -1,0 +1,24 @@
+{
+  "name": "com.chris.claude-sessions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stream Deck plugin to display active Claude Code sessions",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "link": "streamdeck link com.chris.claude-sessions.sdPlugin"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-typescript": "^12.0.0",
+    "@types/node": "^25.3.0",
+    "rollup": "^4.0.0",
+    "tslib": "^2.7.0",
+    "typescript": "^5.6.0"
+  }
+}

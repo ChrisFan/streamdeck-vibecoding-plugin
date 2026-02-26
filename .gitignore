@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+com.chris.claude-sessions.sdPlugin/bin/
+
+# TypeScript
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
