@@ -124,7 +124,7 @@ export class ApproveAction extends SingletonAction {
     }
     try {
       respondToPermission(approvable[0].sessionId, "allow");
-      ev.action.showOk();
+      this.#render(); // Immediately re-render as inactive
     } catch {
       ev.action.showAlert();
     }
@@ -177,7 +177,7 @@ export class RejectAction extends SingletonAction {
     }
     try {
       respondToPermission(approvable[0].sessionId, "deny");
-      ev.action.showOk();
+      this.#render(); // Immediately re-render as inactive
     } catch {
       ev.action.showAlert();
     }
@@ -286,7 +286,11 @@ export class ApproveAllAction extends SingletonAction {
         allOk = false;
       }
     }
-    allOk ? ev.action.showOk() : ev.action.showAlert();
+    if (allOk) {
+      this.#render(); // Immediately re-render as inactive
+    } else {
+      ev.action.showAlert();
+    }
   }
 
   #onChange = (): void => {

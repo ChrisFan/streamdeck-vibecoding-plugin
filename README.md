@@ -2,6 +2,10 @@
 
 Stream Deck MK2 plugin that shows active Claude Code sessions in real-time, with approve/reject/interrupt controls and one-tap terminal focus.
 
+**[Product Page](https://claude-sessions.pawlpixel.net)** · **[Pawl & Pixel Studio](https://pawlpixel.net)**
+
+![Stream Deck Config](intro/Stream%20Deck%20Config1.png)
+
 ## Features
 
 - Session status display (`working` / `idle` / `permission`) with project name and time
@@ -10,6 +14,18 @@ Stream Deck MK2 plugin that shows active Claude Code sessions in real-time, with
 - Approve / Reject / Interrupt / Approve All buttons for permission requests
 - Caffeinate toggle (prevent system sleep during long sessions)
 - Multiple visual themes (Skin Toggle)
+
+## Skins
+
+5 pixel-art skins, each with a unique aesthetic:
+
+| RPG | Pip-Boy | MAGI | Blocks | Cyber |
+|-----|---------|------|--------|-------|
+| ![RPG](intro/Skins/png/RPG.png) | ![Pip-Boy](intro/Skins/png/RIP_BOY.png) | ![MAGI](intro/Skins/png/MAGI.png) | ![Blocks](intro/Skins/png/BLOCKS.png) | ![Cyber](intro/Skins/png/CYBER.png) |
+
+## Demo
+
+> See the full demo video at [`intro/Usage.mov`](intro/Usage.mov) or on the [product page](https://claude-sessions.pawlpixel.net).
 
 ## Requirements
 
